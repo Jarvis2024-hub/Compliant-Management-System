@@ -1,83 +1,109 @@
-# Complaint Management System (Group 5)
+#Complaint Management System (Group 5)
 
 Start-to-end solution for managing institution complaints with Role-Based Access Control. Built with **Flutter** (Frontend) and **PHP/MySQL** (Backend).
 
 ![Project Status](https://img.shields.io/badge/Status-Completed-success)
 ![Tech Stack](https://img.shields.io/badge/Stack-Flutter%20|%20PHP%20|%20MySQL-blue)
 
+---
+
 ## 📌 Optimization & Features
+
 The system streamlines the complaint resolution process by connecting Users, Admins, and Engineers in a seamless workflow.
 
-### Key Features
-- **Secure Authentication**: JWT-based login with Google Sign-In & Email/Password.
-- **Role-Based Access**:
+### 🔹 Key Features
+
+- **Secure Authentication**
+  - JWT-based login
+  - Google Sign-In
+  - Email/Password login
+
+- **Role-Based Access**
   - **User**: Register complaints, track status, view history.
-  - **Admin**: Approve/Reject users, oversee all complaints, generate reports.
-  - **Engineer**: View assigned tasks, update status (In Progress/Resolved).
-- **Intelligent Auto-Assignment**: Complaints are automatically routed to the relevant engineer based on category (IT, Electrical, Civil) and workload.
-- **Real-time Status Tracking**: Users get live updates on their complaint progress.
+  - **Admin**: Approve/Reject users, oversee all complaints.
+  - **Engineer**: View assigned tasks, update complaint status.
+
+- **Intelligent Auto-Assignment**
+  - Complaints are automatically routed to the relevant engineer
+  - Assignment based on specialization and workload
+
+- **Real-Time Status Tracking**
+  - Users can monitor complaint progress instantly
 
 ---
 
 ## 🛠 Tech Stack
 
 | Component | Technology | Description |
-|-----------|------------|-------------|
-| **Frontend** | Flutter (Dart) | Cross-platform mobile application. |
-| **Backend** | Native PHP | REST API with PDO & JWT Middleware. |
-| **Database** | MySQL | Relational database for storing users, complaints, and logs. |
-| **Security** | Bcrypt & JWT | Password hashing and token-based session management. |
+|------------|------------|-------------|
+| **Frontend** | Flutter (Dart) | Cross-platform mobile application |
+| **Backend** | Native PHP | REST API using PDO & JWT Middleware |
+| **Database** | MySQL | Relational database |
+| **Security** | Bcrypt & JWT | Password hashing + token-based authentication |
 
 ---
 
 ## 📂 Repository Structure
 
-```
 /
-├── backend/            # PHP API & Logic
-│   ├── api/            # Endpoints (auth, complaints, admin)
-│   ├── config/         # Database connection
-│   └── utils/          # Helper functions (JWT, Response)
-├── flutter_app/        # Mobile App Code
-│   ├── lib/
-│   │   ├── screens/    # UI Pages
-│   │   ├── services/   # API Integration
-│   │   └── widgets/    # Reusable UI components
-├── database/           # SQL Import Files
-└── docs/               # Documentation & Assets
-```
+├── backend/ # PHP API & Logic
+│ ├── api/
+│ ├── config/
+│ └── utils/
+├── flutter_app/ # Mobile Application
+│ ├── lib/
+│ │ ├── screens/
+│ │ ├── services/
+│ │ └── widgets/
+├── database/ # SQL Schema
+├── docs/ # Screenshots & Diagrams
+├── README.md
+└── SUBMISSION_GUIDE.md
+
 
 ---
 
 ## 🚀 Setup Instructions
 
-### 1. Backend Setup
-1.  Import `database/schema.sql` into your MySQL database (Create DB: `complaint_management`).
-2.  Configure `backend/config/database.php` with your DB credentials.
-3.  Host the `backend` folder on a PHP server (XAMPP/Apache).
+### 1️⃣ Backend Setup
 
-### 2. Frontend Setup
-1.  Ensure **Flutter SDK** is installed.
-2.  Navigate to `flutter_app/`.
-3.  Run `flutter pub get` to install dependencies.
-4.  Update `lib/config/api_config.dart` with your local IP address.
-5.  Run `flutter run`.
+1. Create database: `complaint_management`
+2. Import `database/schema.sql`
+3. Configure `backend/config/database.php`
+4. Run backend using:
+php -S 0.0.0.0:8000
+
 
 ---
 
-## 👥 Team & Roles (Group 5)
+### 2️⃣ Flutter Setup
 
-| Role | Responsibilities |
-|------|------------------|
-| **Backend Core** | API Architecture, Auth Logic, Security implementation. |
-| **Backend Database** | Schema Design, SQL Optimization, Data Integrity. |
-| **Flutter UI** | Screen Design, Widget implementation, UX Flow. |
-| **Flutter Integration** | API Connectivity, State Management, Documentation. |
+1. Navigate to `flutter_app/`
+2. Run:
+flutter pub get
+
+3. Update `api_config.dart` with correct backend URL
+4. Run:
+flutter run
+
+
+---
+
+## 👥 Team Roles – Group 5
+
+| Role | Responsibility |
+|------|----------------|
+| Backend Core | API logic, JWT, Authentication |
+| Backend Support/DB | Database schema, SQL integrity |
+| Flutter UI | Screens, UX design |
+| Flutter Integration | API connectivity, testing |
 
 ---
 
 ## 📸 Screenshots
-*(Add screenshots of Login, Dashboard, and Admin Panel here)*
+
+(Add Login, Dashboard, Admin, Engineer Screenshots in `/docs`)
 
 ---
-*Created for Academic Evaluation 2026*
+
+### 📌 Academic Submission 2026
