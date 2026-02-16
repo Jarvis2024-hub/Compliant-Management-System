@@ -22,7 +22,7 @@ class _AllComplaintsScreenState extends State<AllComplaintsScreen> with SingleTi
   List<ComplaintModel> _allComplaints = [];
   bool _isLoading = false;
   
-  final List<String> _tabs = ['All', 'Pending', 'Assigned', 'In Progress', 'Resolved'];
+  final List<String> _tabs = ['All', 'Unassigned', 'Assigned', 'In Progress', 'Resolved'];
 
   @override
   void initState() {
@@ -79,6 +79,9 @@ class _AllComplaintsScreenState extends State<AllComplaintsScreen> with SingleTi
   List<ComplaintModel> _getFilteredComplaints() {
     final String currentStatus = _tabs[_tabController.index];
     if (currentStatus == 'All') return _allComplaints;
+    if (currentStatus == 'Assigned') {
+      return _allComplaints.where((c) => c.engineerName != null && c.engineerName!.isNotEmpty).toList();
+    }
     return _allComplaints.where((c) => c.status == currentStatus).toList();
   }
 

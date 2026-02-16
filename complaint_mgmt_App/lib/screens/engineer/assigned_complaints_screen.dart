@@ -102,6 +102,8 @@ class _AssignedComplaintsScreenState extends State<AssignedComplaintsScreen> {
                     final complaint = _complaints[index];
                     return Card(
                       margin: const EdgeInsets.only(bottom: 16),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       child: Padding(
                         padding: const EdgeInsets.all(16),
                         child: Column(
@@ -112,18 +114,20 @@ class _AssignedComplaintsScreenState extends State<AssignedComplaintsScreen> {
                               children: [
                                 Text(
                                   '#${complaint['id']}',
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                   decoration: BoxDecoration(
-                                    color: Colors.blue.withOpacity(0.1),
+                                    color: (complaint['status'] == 'Resolved') 
+                                        ? Colors.green.withOpacity(0.1) 
+                                        : Colors.blue.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
                                     complaint['status'] ?? 'Unknown',
-                                    style: const TextStyle(
-                                      color: Colors.blue, 
+                                    style: TextStyle(
+                                      color: (complaint['status'] == 'Resolved') ? Colors.green : Colors.blue, 
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12
                                     ),
@@ -131,22 +135,29 @@ class _AssignedComplaintsScreenState extends State<AssignedComplaintsScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 12),
                             Text(
-                              complaint['category_name'] ?? 'Category',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              complaint['category_name'] ?? 'Uncategorized',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
                             ),
-                            const SizedBox(height: 4),
-                            Text(complaint['description'] ?? ''),
+                            const SizedBox(height: 6),
+                            Text(
+                            complaint['description'] ?? 'No description provided',
+                            style: const TextStyle(color: AppColors.textSecondary),
+                            ),
                             const SizedBox(height: 16),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                ElevatedButton(
-                                  onPressed: () => _showStatusDialog(complaint),
-                                  child: const Text('Update Status'),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _showStatusDialog(complaint),
+                                icon: const Icon(Icons.edit, size: 16),
+                                label: const Text('Update Status'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.primary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                 ),
-                              ],
+                              ),
                             ),
                           ],
                         ),

@@ -140,8 +140,18 @@ class GoogleAuth {
                 }
 
                 // Check Status
+                if ($user['status'] === 'pending') {
+                     Response::error('Your account is pending approval from the administrator.', 403); // Specific message
+                     return;
+                }
+                
+                if ($user['status'] === 'rejected') {
+                     Response::error('Your account has been rejected.', 403);
+                     return;
+                }
+
                 if ($user['status'] !== 'approved') {
-                     Response::error('Account pending admin approval.', 403);
+                     Response::error('Account status invalid.', 403);
                      return;
                 }
 
@@ -154,10 +164,9 @@ class GoogleAuth {
 
             } else {
                 // Determine Status
-                $status = 'approved';
-                if ($role === 'engineer' || $role === 'admin') {
-                    $status = 'pending';
-                }
+                // Default 'approved' only for 'user' role. 
+                // Admin and Engineer must be 'pending' approval.
+                $status = ($role === 'user') ? 'approved' : 'pending';
 
                 $insertStmt = $this->conn->prepare("INSERT INTO users (google_id, name, email, role, status) VALUES (:google_id, :name, :email, :role, :status)");
                 $insertStmt->bindParam(':google_id', $google_id);

@@ -60,52 +60,30 @@ try {
     $category = $checkStmt->fetch();
     $category_name = $category['category_name'];
 
-    // Auto-assignment Logic (PHP-based matching for robustness)
-    $stmt = $conn->query("SELECT id, name, email, specialization FROM users WHERE role = 'engineer' AND status = 'approved'");
-    $available_engineers = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    $engineer = null;
-    $target_spec = strtolower(trim($category_name));
-
-    // 1. Strict Match
-    foreach ($available_engineers as $eng) {
-        if (strtolower(trim($eng['specialization'])) === $target_spec) {
-            $engineer = $eng;
-            break; // Found one
-        }
-    }
-
-    // 2. Loose Match if strict failed
-    if (!$engineer) {
-        foreach ($available_engineers as $eng) {
-            $eng_spec = strtolower(trim($eng['specialization']));
-            // flexible matching: 'network' matches 'network engineer' or vice versa
-            if (strpos($eng_spec, $target_spec) !== false || strpos($target_spec, $eng_spec) !== false) {
-                $engineer = $eng;
-                break;
-            }
-        }
-    }
-
-    // Debug Log and Assignment Logic
+    // Auto-Assignment Logic
     $assignee_id = null;
     $status = 'Pending';
-    
 
-    if ($engineer) {
+    // Find available engineer with matching specialization
+    // Load balancing: Select engineer with fewest active complaints
+    $engQuery = "SELECT u.id, COUNT(c.id) as active_complaints 
+                 FROM users u 
+                 LEFT JOIN complaints c ON u.id = c.assignee_id AND c.status != 'Resolved'
+                 WHERE u.role = 'engineer' 
+                 AND u.status = 'approved' 
+                 AND u.specialization = :category_name
+                 GROUP BY u.id
+                 ORDER BY active_complaints ASC
+                 LIMIT 1";
+                 
+    $engStmt = $conn->prepare($engQuery);
+    $engStmt->bindParam(':category_name', $category_name);
+    $engStmt->execute();
+    
+    if ($engStmt->rowCount() > 0) {
+        $engineer = $engStmt->fetch(PDO::FETCH_ASSOC);
         $assignee_id = $engineer['id'];
-        $status = 'In Progress'; // Auto-set to In Progress (or Assigned, check enum)
-        // Check Enum: 'Pending', 'In Progress', 'Resolved'. 
-        // 'Assigned' is not in the Enum based on schema.sql (lines 33). Defaulting to 'In Progress' or keeping 'Pending' with assignee_id?
-        // Schema: status ENUM('Pending', 'In Progress', 'Resolved') DEFAULT 'Pending'
-        // Plan: If assigned, set to 'In Progress' to indicate action has started? Or keep 'Pending' until engineer accepts?
-        // User request is "auto assignment". 
-        // Let's set to 'Pending' but with assignee_id, OR 'In Progress'. 
-        // Existing code set it to 'In Progress'. I will keep it 'In Progress' for now as it implies active handling.
-        error_log("Auto-Assignment Success: Assigned to Engineer ID: " . $engineer['id'] . " (" . $engineer['name'] . ") for Category: '$category_name'");
-    } else {
-        error_log("Auto-Assignment Failed: No approved engineer found for Category: '$category_name' (normalized).");
-        // Optional: Fallback to a default admin or super-engineer? No, leave unassigned for Admin to handle.
+        $status = 'In Progress'; // Automatically set to In Progress when assigned
     }
 
     // Insert complaint

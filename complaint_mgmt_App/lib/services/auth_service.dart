@@ -37,7 +37,7 @@ class AuthService {
           'email': email,
           'password': password,
         }),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 30));
 
       return _processAuthResponse(response, null);
     } on TimeoutException {
@@ -62,7 +62,7 @@ class AuthService {
         Uri.parse(ApiConfig.register),
         headers: {'Content-Type': 'application/json'},
         body: json.encode(body),
-      ).timeout(const Duration(seconds: 15));
+      ).timeout(const Duration(seconds: 30));
 
        final result = _handleBasicResponse(response);
        return result;
@@ -106,7 +106,7 @@ class AuthService {
             'name': googleUser.displayName ?? 'User',
             'role': role,
           }),
-        ).timeout(const Duration(seconds: 15));
+        ).timeout(const Duration(seconds: 30));
 
         return _processAuthResponse(response, role);
 

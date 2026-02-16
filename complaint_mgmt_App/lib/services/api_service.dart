@@ -4,7 +4,7 @@ import '../models/response_model.dart';
 import 'storage_service.dart';
 
 class ApiService {
-  static const Duration _timeout = Duration(seconds: 15);
+  static const Duration _timeout = Duration(seconds: 30);
   final StorageService _storage = StorageService();
 
   /// Automatically combines user-provided headers with the JWT Authorization header.

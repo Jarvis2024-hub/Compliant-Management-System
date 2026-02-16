@@ -13,7 +13,7 @@ class Database {
         $this->db_name = getenv('DB_NAME') ?: 'complaint_management';
         $this->username = getenv('DB_USER') ?: 'root';
         $this->password = getenv('DB_PASS') ?: '';
-        $this->port = getenv('DB_PORT') ?: '3307';
+        $this->port = getenv('DB_PORT') ?: '3306';
     }
 
     public function getConnection() {

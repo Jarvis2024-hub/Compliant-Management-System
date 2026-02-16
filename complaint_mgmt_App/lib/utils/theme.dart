@@ -11,7 +11,6 @@ class ResolveProTheme {
         seedColor: AppColors.primary,
         primary: AppColors.primary,
         secondary: AppColors.accent,
-        background: AppColors.background,
         surface: AppColors.white,
       ),
       // Default to standard Sans-Serif (Poppins should be added to pubspec for full effect)
