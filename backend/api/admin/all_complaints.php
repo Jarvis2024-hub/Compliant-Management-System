@@ -37,10 +37,13 @@ try {
                 cat.category_name,
                 u.name as user_name,
                 u.email as user_email,
+                assignee.name as engineer_name,
+                c.assignee_id,
                 ar.response as admin_response
               FROM complaints c
               INNER JOIN categories cat ON c.category_id = cat.id
               INNER JOIN users u ON c.user_id = u.id
+              LEFT JOIN users assignee ON c.assignee_id = assignee.id
               LEFT JOIN admin_responses ar ON c.id = ar.complaint_id
               WHERE 1=1";
     

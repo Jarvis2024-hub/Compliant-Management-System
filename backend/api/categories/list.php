@@ -10,11 +10,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 }
 
 require_once __DIR__ . '/../../config/database.php';
-require_once __DIR__ . '/../../middleware/auth_middleware.php';
 require_once __DIR__ . '/../../utils/response.php';
 
-// Authenticate user
-$user = AuthMiddleware::authenticate();
+// No authentication required - categories needed during registration
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     Response::error('Method not allowed', 405);

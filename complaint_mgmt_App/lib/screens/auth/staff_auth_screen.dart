@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
+import '../../services/api_service.dart';
+import '../../config/api_config.dart';
+import '../../models/category_model.dart';
 import '../../utils/app_colors.dart';
 import '../../widgets/premium_logo.dart';
 import '../dashboard_router.dart';
@@ -18,19 +21,48 @@ class _StaffAuthScreenState extends State<StaffAuthScreen> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   final AuthService _authService = AuthService();
+  final ApiService _apiService = ApiService();
 
   bool _isLogin = true;
   bool _isLoading = false;
   bool _isGoogleLoading = false;
   late String _staffRole;
-  String? _selectedSpecialization;
 
-  final List<String> _specializations = ['Technical', 'Maintenance', 'Network', 'Hardware', 'Software'];
+  List<String> _specializationNames = [
+    'AC Repair', 'Carpentry', 'Civil', 'Cleaning',
+    'Electrical', 'Facility', 'Hardware', 'Network',
+    'Painting', 'Plumbing', 'Software', 'Other'
+  ];
+  String? _selectedSpecialization;
+  bool _isLoadingCategories = false;
 
   @override
   void initState() {
     super.initState();
     _staffRole = widget.initialRole ?? 'engineer';
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    // Silent load - don't show loading indicator on UI to prevent blocking
+    try {
+      final response = await _apiService.get(ApiConfig.categoriesList);
+      if (response.success && response.data != null) {
+        final List<dynamic> categoriesJson = response.data['categories'];
+        final List<String> fetchedNames = categoriesJson
+            .map((json) => CategoryModel.fromJson(json).categoryName)
+            .toList();
+
+        if (fetchedNames.isNotEmpty && mounted) {
+          setState(() {
+            _specializationNames = fetchedNames;
+          });
+        }
+      }
+    } catch (e) {
+      // Silently fail - use default hardcoded list if API fails
+      debugPrint('Category fetch failed: $e');
+    }
   }
 
   Future<void> _handleStaffAuth() async {
@@ -38,7 +70,7 @@ class _StaffAuthScreenState extends State<StaffAuthScreen> {
 
     if (!_isLogin && _staffRole == 'engineer' && _selectedSpecialization == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a specialization'), backgroundColor: AppColors.error),
+        const SnackBar(content: Text('Please select your specialization'), backgroundColor: AppColors.error),
       );
       return;
     }
@@ -142,17 +174,11 @@ class _StaffAuthScreenState extends State<StaffAuthScreen> {
               Text(
                 _isLogin ? 'Staff Login' : 'Request Staff Access',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.darkNavy,
-                ),
+                style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.darkNavy),
               ),
               const SizedBox(height: 8),
               Text(
-                _isLogin
-                  ? 'Accessing as ${_staffRole.toUpperCase()}'
-                  : 'Requesting access as ${_staffRole.toUpperCase()}',
+                _isLogin ? 'Accessing as ${_staffRole.toUpperCase()}' : 'Registering as ${_staffRole.toUpperCase()}',
                 textAlign: TextAlign.center,
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
@@ -165,22 +191,32 @@ class _StaffAuthScreenState extends State<StaffAuthScreen> {
                     if (!_isLogin) ...[
                       TextFormField(
                         controller: _nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Full Name',
-                          prefixIcon: Icon(Icons.person_outline_rounded),
-                        ),
+                        decoration: const InputDecoration(labelText: 'Full Name', prefixIcon: Icon(Icons.person_outline_rounded)),
                         validator: (v) => (v == null || v.isEmpty) ? 'Name required' : null,
                       ),
                       const SizedBox(height: 16),
+
+                      // 🚀 FIXED SPECIALIZATION DROPDOWN
                       if (_staffRole == 'engineer') ...[
                         DropdownButtonFormField<String>(
                           value: _selectedSpecialization,
+                          isExpanded: true,
                           decoration: const InputDecoration(
                             labelText: 'Engineer Specialization',
                             prefixIcon: Icon(Icons.psychology_outlined),
                           ),
-                          items: _specializations.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                          onChanged: (v) => setState(() => _selectedSpecialization = v),
+                          hint: const Text('Select specialization'),
+                          items: _specializationNames.map((name) {
+                            return DropdownMenuItem<String>(
+                              value: name,
+                              child: Text(name),
+                            );
+                          }).toList(),
+                          onChanged: (String? value) {
+                            setState(() {
+                              _selectedSpecialization = value;
+                            });
+                          },
                           validator: (v) => v == null ? 'Specialization required' : null,
                         ),
                         const SizedBox(height: 16),
@@ -188,20 +224,14 @@ class _StaffAuthScreenState extends State<StaffAuthScreen> {
                     ],
                     TextFormField(
                       controller: _emailController,
-                      decoration: const InputDecoration(
-                        labelText: 'Staff Email',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Staff Email', prefixIcon: Icon(Icons.email_outlined)),
                       validator: (v) => (v == null || !v.contains('@')) ? 'Valid email required' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _passwordController,
                       obscureText: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Password',
-                        prefixIcon: Icon(Icons.lock_outline_rounded),
-                      ),
+                      decoration: const InputDecoration(labelText: 'Password', prefixIcon: Icon(Icons.lock_outline_rounded)),
                       validator: (v) => (v == null || v.isEmpty) ? 'Password required' : null,
                     ),
                   ],
@@ -211,12 +241,7 @@ class _StaffAuthScreenState extends State<StaffAuthScreen> {
               const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _isLoading ? null : _handleStaffAuth,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                ),
-                child: _isLoading 
+                child: _isLoading
                   ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
                   : Text(_isLogin ? 'Login to Dashboard' : 'Submit Access Request'),
               ),
@@ -239,7 +264,10 @@ class _StaffAuthScreenState extends State<StaffAuthScreen> {
               
               const SizedBox(height: 32),
               TextButton(
-                onPressed: () => setState(() => _isLogin = !_isLogin),
+                onPressed: () => setState(() {
+                  _isLogin = !_isLogin;
+                  _selectedSpecialization = null; // Clear on toggle
+                }),
                 child: Text(
                   _isLogin ? "New staff? Request access" : "Back to Login",
                   style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold),

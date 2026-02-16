@@ -23,11 +23,70 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
   
   late ComplaintModel _complaint;
   bool _isUpdating = false;
+  List<dynamic> _availableEngineers = [];
+  bool _isLoadingEngineers = false;
 
   @override
   void initState() {
     super.initState();
     _complaint = widget.complaint;
+    if (_complaint.engineerName == null) {
+      _loadEngineers();
+    }
+  }
+
+  Future<void> _loadEngineers() async {
+    setState(() => _isLoadingEngineers = true);
+    try {
+      final response = await _complaintService.getEngineersByCategory(_complaint.categoryName);
+      if (mounted) {
+        setState(() {
+          if (response.success && response.data != null) {
+            // Robust check for both raw List or nested Map formats
+            if (response.data is List) {
+              _availableEngineers = response.data;
+            } else if (response.data is Map && response.data['engineers'] != null) {
+              _availableEngineers = response.data['engineers'];
+            }
+          }
+          _isLoadingEngineers = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingEngineers = false);
+    }
+  }
+
+  Future<void> _assignEngineer(int engineerId, String engineerName) async {
+    setState(() => _isUpdating = true);
+    final response = await _complaintService.assignEngineer(
+      complaintId: _complaint.id,
+      engineerId: engineerId,
+    );
+
+    if (mounted) {
+      setState(() => _isUpdating = false);
+      if (response.success) {
+        setState(() {
+          _complaint = ComplaintModel(
+            id: _complaint.id,
+            description: _complaint.description,
+            priority: _complaint.priority,
+            status: 'In Progress', // Match backend and schema
+            categoryName: _complaint.categoryName,
+            createdAt: _complaint.createdAt,
+            userName: _complaint.userName,
+            userEmail: _complaint.userEmail,
+            adminResponse: _complaint.adminResponse,
+            responseDate: _complaint.responseDate,
+            engineerName: engineerName,
+          );
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Engineer assigned successfully'), backgroundColor: AppColors.success),
+        );
+      }
+    }
   }
 
   Future<void> _updateStatus(String newStatus) async {
@@ -37,36 +96,22 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
         title: const Text('Update Status'),
         content: Text('Change status to "$newStatus"?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Update'),
-          ),
+          TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancel')),
+          ElevatedButton(onPressed: () => Navigator.of(context).pop(true), child: const Text('Update')),
         ],
       ),
     );
 
     if (confirm != true) return;
 
-    setState(() {
-      _isUpdating = true;
-    });
+    setState(() => _isUpdating = true);
+    final response = await _complaintService.updateComplaintStatus(
+      complaintId: _complaint.id,
+      status: newStatus,
+    );
 
-    try {
-      final response = await _complaintService.updateComplaintStatus(
-        complaintId: _complaint.id,
-        status: newStatus,
-      );
-
-      setState(() {
-        _isUpdating = false;
-      });
-
-      if (!mounted) return;
-
+    if (mounted) {
+      setState(() => _isUpdating = false);
       if (response.success) {
         setState(() {
           _complaint = ComplaintModel(
@@ -80,46 +125,11 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
             userEmail: _complaint.userEmail,
             adminResponse: _complaint.adminResponse,
             responseDate: _complaint.responseDate,
+            engineerName: _complaint.engineerName,
+            engineerResponse: _complaint.engineerResponse,
           );
         });
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Status updated successfully'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-      } else {
-        _showError(response.message);
       }
-    } catch (e) {
-      setState(() {
-        _isUpdating = false;
-      });
-      if (!mounted) return;
-      _showError('Failed to update status');
-    }
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.error,
-      ),
-    );
-  }
-
-  Color _getPriorityColor() {
-    switch (_complaint.priority) {
-      case 'High':
-        return AppColors.priorityHigh;
-      case 'Medium':
-        return AppColors.priorityMedium;
-      case 'Low':
-        return AppColors.priorityLow;
-      default:
-        return Colors.grey;
     }
   }
 
@@ -136,61 +146,95 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_complaint.engineerName == null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.error.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: const [
+                    Icon(Icons.warning_amber_rounded, color: AppColors.error),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Auto-assignment failed. Please assign an engineer manually.',
+                        style: TextStyle(color: AppColors.error, fontWeight: FontWeight.bold, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             Card(
               elevation: 2,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Current Status',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary,
-                          ),
-                        ),
+                        const Text('Ticket Info', style: TextStyle(fontWeight: FontWeight.bold)),
                         StatusBadge(status: _complaint.status),
                       ],
                     ),
                     const Divider(height: 24),
                     _buildInfoRow('ID', '#${_complaint.id}', Icons.tag),
                     const SizedBox(height: 12),
-                    _buildInfoRow(
-                      'Category',
-                      _complaint.categoryName,
-                      Icons.category,
-                    ),
+                    _buildInfoRow('Category', _complaint.categoryName, Icons.category),
                     const SizedBox(height: 12),
-                    _buildInfoRow(
-                      'Priority',
-                      _complaint.priority,
-                      Icons.flag,
-                      color: _getPriorityColor(),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoRow(
-                      'Submitted',
-                      _formatDate(_complaint.createdAt),
-                      Icons.access_time,
-                    ),
+                    _buildInfoRow('Priority', _complaint.priority, Icons.flag),
                   ],
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
-            const Text(
-              'User Information',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            const Text('Engineer Assignment', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            Card(
+              elevation: 2,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: _complaint.engineerName != null
+                    ? _buildInfoRow('Assigned To', _complaint.engineerName!, Icons.engineering, color: AppColors.success)
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Select an engineer to assign:', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          const SizedBox(height: 12),
+                          if (_isLoadingEngineers)
+                            const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                          else if (_availableEngineers.isEmpty)
+                            const Text('No engineers found for this category', style: TextStyle(color: AppColors.error, fontSize: 13))
+                          else
+                            DropdownButtonFormField<int>(
+                              isExpanded: true,
+                              decoration: const InputDecoration(hintText: 'Choose Engineer', border: OutlineInputBorder()),
+                              items: _availableEngineers.map((eng) {
+                                return DropdownMenuItem<int>(
+                                  value: int.parse(eng['id'].toString()),
+                                  child: Text(eng['name']),
+                                );
+                              }).toList(),
+                              onChanged: (val) {
+                                if (val != null) {
+                                  final eng = _availableEngineers.firstWhere((e) => int.parse(e['id'].toString()) == val);
+                                  _assignEngineer(val, eng['name']);
+                                }
+                              },
+                            ),
+                        ],
+                      ),
               ),
             ),
+
+            const SizedBox(height: 16),
+            const Text('User Details', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Card(
               elevation: 2,
@@ -198,145 +242,46 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _buildInfoRow(
-                      'Name',
-                      _complaint.userName ?? 'N/A',
-                      Icons.person,
-                    ),
+                    _buildInfoRow('User', _complaint.userName ?? 'N/A', Icons.person),
                     const SizedBox(height: 12),
-                    _buildInfoRow(
-                      'Email',
-                      _complaint.userEmail ?? 'N/A',
-                      Icons.email,
-                    ),
+                    _buildInfoRow('Email', _complaint.userEmail ?? 'N/A', Icons.email),
                   ],
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
-            const Text(
-              'Description',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Card(
               elevation: 2,
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text(
-                  _complaint.description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                    height: 1.5,
-                  ),
-                ),
+                child: Text(_complaint.description, style: const TextStyle(fontSize: 14, height: 1.5)),
               ),
             ),
-            if (_complaint.adminResponse != null) ...[
-              const SizedBox(height: 16),
-              const Text(
-                'Admin Response',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Card(
-                elevation: 2,
-                color: Colors.blue[50],
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.admin_panel_settings,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Response on ${_formatDate(_complaint.responseDate ?? '')}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSecondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 16),
-                      Text(
-                        _complaint.adminResponse!,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AppColors.textPrimary,
-                          height: 1.5,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+
             const SizedBox(height: 24),
-            const Text(
-              'Update Status',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
-              ),
-            ),
+            const Text('Actions', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
-              runSpacing: 8,
               children: AppConstants.statuses.map((status) {
-                final isCurrentStatus = status == _complaint.status;
-                return ElevatedButton(
-                  onPressed: isCurrentStatus || _isUpdating
-                      ? null
-                      : () => _updateStatus(status),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isCurrentStatus
-                        ? AppColors.primary
-                        : Colors.grey[200],
-                    foregroundColor:
-                        isCurrentStatus ? Colors.white : AppColors.textPrimary,
-                    disabledBackgroundColor: Colors.grey[300],
-                  ),
-                  child: Text(status),
+                final isCurrent = status == _complaint.status;
+                return ChoiceChip(
+                  label: Text(status),
+                  selected: isCurrent,
+                  onSelected: isCurrent || _isUpdating ? null : (selected) => _updateStatus(status),
                 );
               }).toList(),
             ),
             const SizedBox(height: 24),
             CustomButton(
-              text: _complaint.adminResponse == null
-                  ? 'Add Response'
-                  : 'Update Response',
+              text: 'Add System Response',
               icon: Icons.reply,
               onPressed: () async {
-                final result = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => AddResponseScreen(
-                      complaint: _complaint,
-                    ),
-                  ),
-                );
-                if (result == true) {
-                  if (!mounted) return;
-                  Navigator.of(context).pop(true);
-                }
+                final result = await Navigator.push(context, MaterialPageRoute(builder: (context) => AddResponseScreen(complaint: _complaint)));
+                if (result == true) Navigator.of(context).pop(true);
               },
             ),
           ],
@@ -345,8 +290,7 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value, IconData icon,
-      {Color? color}) {
+  Widget _buildInfoRow(String label, String value, IconData icon, {Color? color}) {
     return Row(
       children: [
         Icon(icon, size: 20, color: color ?? AppColors.textSecondary),
@@ -355,22 +299,8 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.textSecondary,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: color ?? AppColors.textPrimary,
-                ),
-              ),
+              Text(label, style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: color ?? AppColors.textPrimary)),
             ],
           ),
         ),
@@ -381,8 +311,8 @@ class _ComplaintManagementScreenState extends State<ComplaintManagementScreen> {
   String _formatDate(String date) {
     try {
       final DateTime dt = DateTime.parse(date);
-      return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
+      return '${dt.day}/${dt.month}/${dt.year}';
+    } catch (_) {
       return date;
     }
   }

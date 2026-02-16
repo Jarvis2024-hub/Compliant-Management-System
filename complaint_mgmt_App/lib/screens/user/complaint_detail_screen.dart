@@ -140,6 +140,15 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
                                   _formatDate(_complaint!.createdAt),
                                   Icons.access_time,
                                 ),
+                                if (_complaint!.engineerName != null) ...[
+                                  const SizedBox(height: 12),
+                                  _buildDetailRow(
+                                    'Assigned To',
+                                    _complaint!.engineerName!,
+                                    Icons.person_pin_circle_rounded,
+                                    color: AppColors.primary,
+                                  ),
+                                ],
                               ],
                             ),
                           ),

@@ -24,6 +24,8 @@ try {
     $db = new Database();
     $conn = $db->getConnection();
     
+    error_log("Engineer Debug: Fetching for User ID: " . $user['user_id']); // Add debug log
+    
     $query = "SELECT 
                 c.id,
                 c.description,
@@ -35,8 +37,8 @@ try {
                 cat.category_name,
                 ar.response as admin_response
               FROM complaints c
-              INNER JOIN categories cat ON c.category_id = cat.id
-              INNER JOIN users u ON c.user_id = u.id
+              LEFT JOIN categories cat ON c.category_id = cat.id
+              LEFT JOIN users u ON c.user_id = u.id
               LEFT JOIN admin_responses ar ON c.id = ar.complaint_id
               WHERE c.assignee_id = :engineer_id
               ORDER BY c.created_at DESC";

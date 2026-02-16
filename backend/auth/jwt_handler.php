@@ -56,8 +56,8 @@ class JWTHandler {
             return false;
         }
         
-        $header = base64_decode($tokenParts[0]);
-        $payload = base64_decode($tokenParts[1]);
+        $header = base64_decode(strtr($tokenParts[0], '-_', '+/'));
+        $payload = base64_decode(strtr($tokenParts[1], '-_', '+/'));
         $signatureProvided = $tokenParts[2];
         
         $base64UrlHeader = self::base64UrlEncode($header);

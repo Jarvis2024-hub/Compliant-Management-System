@@ -9,6 +9,8 @@ class ComplaintModel {
   final String? userEmail;
   final String? adminResponse;
   final String? responseDate;
+  final String? engineerName;
+  final String? engineerResponse;
 
   ComplaintModel({
     required this.id,
@@ -21,6 +23,8 @@ class ComplaintModel {
     this.userEmail,
     this.adminResponse,
     this.responseDate,
+    this.engineerName,
+    this.engineerResponse,
   });
 
   factory ComplaintModel.fromJson(Map<String, dynamic> json) {
@@ -35,6 +39,8 @@ class ComplaintModel {
       userEmail: json['user_email'],
       adminResponse: json['admin_response'],
       responseDate: json['response_date'],
+      engineerName: json['engineer_name'],
+      engineerResponse: json['engineer_response'],
     );
   }
 
@@ -50,6 +56,8 @@ class ComplaintModel {
       'user_email': userEmail,
       'admin_response': adminResponse,
       'response_date': responseDate,
+      'engineer_name': engineerName,
+      'engineer_response': engineerResponse,
     };
   }
 

@@ -7,27 +7,10 @@ class ComplaintService {
   final ApiService _apiService = ApiService();
   final StorageService _storage = StorageService();
 
-  /* ===================== AUTH HEADER ===================== */
-
-  Future<Map<String, String>> _authHeader() async {
-    final token = await _storage.getToken();
-    if (token == null || token.isEmpty) {
-      throw Exception('Authorization token missing');
-    }
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer $token',
-    };
-  }
-
   /* ===================== CATEGORIES ===================== */
 
   Future<ApiResponse> getCategories() async {
-    final headers = await _authHeader();
-    return await _apiService.get(
-      ApiConfig.categoriesList,
-      headers: headers,
-    );
+    return await _apiService.get(ApiConfig.categoriesList);
   }
 
   /* ===================== USER ===================== */
@@ -37,7 +20,6 @@ class ComplaintService {
     required String description,
     required String priority,
   }) async {
-    final headers = await _authHeader();
     return await _apiService.post(
       ApiConfig.createComplaint,
       {
@@ -45,24 +27,15 @@ class ComplaintService {
         'description': description,
         'priority': priority,
       },
-      headers: headers,
     );
   }
 
   Future<ApiResponse> getMyComplaints() async {
-    final headers = await _authHeader();
-    return await _apiService.get(
-      ApiConfig.myComplaints,
-      headers: headers,
-    );
+    return await _apiService.get(ApiConfig.myComplaints);
   }
 
   Future<ApiResponse> getComplaintDetails(int complaintId) async {
-    final headers = await _authHeader();
-    return await _apiService.get(
-      '${ApiConfig.complaintDetails}?id=$complaintId',
-      headers: headers,
-    );
+    return await _apiService.get('${ApiConfig.complaintDetails}?id=$complaintId');
   }
 
   /* ===================== ADMIN ===================== */
@@ -71,30 +44,45 @@ class ComplaintService {
     String? status,
     String? priority,
   }) async {
-    final headers = await _authHeader();
     String url = ApiConfig.allComplaints;
     final params = <String>[];
     if (status != null && status.isNotEmpty) params.add('status=$status');
     if (priority != null && priority.isNotEmpty) params.add('priority=$priority');
     if (params.isNotEmpty) url += '?${params.join('&')}';
-    return await _apiService.get(url, headers: headers);
+    return await _apiService.get(url);
+  }
+
+  // 🛠 NEW: Manual Assignment API Call
+  Future<ApiResponse> assignEngineer({
+    required int complaintId,
+    required int engineerId,
+  }) async {
+    return await _apiService.post(
+      '${ApiConfig.baseUrl}/api/admin/assign_engineer.php',
+      {
+        'complaint_id': complaintId,
+        'engineer_id': engineerId,
+      },
+    );
+  }
+
+  // 🛠 NEW: Fetch available engineers for a category
+  Future<ApiResponse> getEngineersByCategory(String categoryName) async {
+    return await _apiService.get(
+      '${ApiConfig.baseUrl}/api/admin/engineers_list.php?category=$categoryName',
+    );
   }
 
   Future<ApiResponse> updateComplaintStatus({
     required int complaintId,
     required String status,
   }) async {
-    final headers = await _authHeader();
-
-    // Changed from .post to .put to match typical "update" APIs
-    // If your backend specifically requires POST, please let me know.
     return await _apiService.put(
       ApiConfig.updateStatus,
       {
         'complaint_id': complaintId,
         'status': status,
       },
-      headers: headers,
     );
   }
 
@@ -102,22 +90,18 @@ class ComplaintService {
     required int complaintId,
     required String response,
   }) async {
-    final headers = await _authHeader();
     return await _apiService.post(
       ApiConfig.addResponse,
       {
         'complaint_id': complaintId,
         'response': response,
       },
-      headers: headers,
     );
   }
 
+  /* ===================== ENGINEER ===================== */
+
   Future<ApiResponse> getAssignedComplaints() async {
-    final headers = await _authHeader();
-    return await _apiService.get(
-      '${ApiConfig.baseUrl}/api/complaints/my_assigned.php',
-      headers: headers,
-    );
+    return await _apiService.get('${ApiConfig.baseUrl}/api/complaints/my_assigned.php');
   }
 }

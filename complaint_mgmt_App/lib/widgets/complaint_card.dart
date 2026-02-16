@@ -168,6 +168,26 @@ class ComplaintCard extends StatelessWidget {
                     ],
                   ),
                 ],
+                if (complaint.engineerName != null) ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 0),
+                    child: SizedBox(height: 8),
+                  ),
+                  Row(
+                    children: [
+                      const Icon(Icons.person_pin_circle_outlined, size: 14, color: AppColors.primary),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Assigned to: ${complaint.engineerName}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (complaint.adminResponse != null) ...[
                   const SizedBox(height: 12),
                   Container(

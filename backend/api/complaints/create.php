@@ -60,25 +60,52 @@ try {
     $category = $checkStmt->fetch();
     $category_name = $category['category_name'];
 
-    // Auto-assignment Logic
-    // Find approved engineer with matching specialization
-    $engineerQuery = "SELECT id FROM users WHERE role = 'engineer' AND status = 'approved' AND specialization = :specialization ORDER BY RAND() LIMIT 1";
-    $engStmt = $conn->prepare($engineerQuery);
-    $engStmt->bindValue(':specialization', $category_name);
-    $engStmt->execute();
-    $engineer = $engStmt->fetch();
+    // Auto-assignment Logic (PHP-based matching for robustness)
+    $stmt = $conn->query("SELECT id, name, email, specialization FROM users WHERE role = 'engineer' AND status = 'approved'");
+    $available_engineers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    $engineer = null;
+    $target_spec = strtolower(trim($category_name));
+
+    // 1. Strict Match
+    foreach ($available_engineers as $eng) {
+        if (strtolower(trim($eng['specialization'])) === $target_spec) {
+            $engineer = $eng;
+            break; // Found one
+        }
+    }
+
+    // 2. Loose Match if strict failed
+    if (!$engineer) {
+        foreach ($available_engineers as $eng) {
+            $eng_spec = strtolower(trim($eng['specialization']));
+            // flexible matching: 'network' matches 'network engineer' or vice versa
+            if (strpos($eng_spec, $target_spec) !== false || strpos($target_spec, $eng_spec) !== false) {
+                $engineer = $eng;
+                break;
+            }
+        }
+    }
+
+    // Debug Log and Assignment Logic
     $assignee_id = null;
     $status = 'Pending';
+    
+
     if ($engineer) {
         $assignee_id = $engineer['id'];
-        $status = 'In Progress'; // Automatically set to In Progress if assigned? Requirement says "Assign automatically... If none available -> mark pending". Implicitly if assigned, maybe status should be Pending but assigned? Standard is usually Pending until Engineer accepts. But requirement says "Assign automatically". Let's keep status 'Pending' or strictly follow "If none available -> mark pending". It implies if available -> mark something else? Or usually Assigned is a state. But status ENUM is 'Pending', 'In Progress', 'Resolved'. I'll keep it 'Pending' or set to 'In Progress' if assigned? 
-        // "When complaint created: ... Assign automatically ... If none available -> mark pending".
-        // This suggests if assigned, it might NOT be pending? 
-        // But let's stick to 'Pending' as safe default, or 'In Progress' if the user meant "Assigned". 
-        // Without an 'Assigned' status, 'Pending' is best. The engineer will see it.
-        // Actually, if I assign it, the engineer sees it. 'Pending' means waiting for resolution.
-        // I will keep status as 'Pending' even if assigned, unless I change it.
+        $status = 'In Progress'; // Auto-set to In Progress (or Assigned, check enum)
+        // Check Enum: 'Pending', 'In Progress', 'Resolved'. 
+        // 'Assigned' is not in the Enum based on schema.sql (lines 33). Defaulting to 'In Progress' or keeping 'Pending' with assignee_id?
+        // Schema: status ENUM('Pending', 'In Progress', 'Resolved') DEFAULT 'Pending'
+        // Plan: If assigned, set to 'In Progress' to indicate action has started? Or keep 'Pending' until engineer accepts?
+        // User request is "auto assignment". 
+        // Let's set to 'Pending' but with assignee_id, OR 'In Progress'. 
+        // Existing code set it to 'In Progress'. I will keep it 'In Progress' for now as it implies active handling.
+        error_log("Auto-Assignment Success: Assigned to Engineer ID: " . $engineer['id'] . " (" . $engineer['name'] . ") for Category: '$category_name'");
+    } else {
+        error_log("Auto-Assignment Failed: No approved engineer found for Category: '$category_name' (normalized).");
+        // Optional: Fallback to a default admin or super-engineer? No, leave unassigned for Admin to handle.
     }
 
     // Insert complaint
